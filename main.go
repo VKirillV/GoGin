@@ -37,8 +37,6 @@ func main() {
 	app.client = bot.Client()
 	bot.HandleMessage("/start", app.startHandler)
 	log.Fatal(bot.Start())
-	bot.HandleMessage("/check", app.startHandler)
-	log.Fatal(bot.Start())
 }
 
 func (a *application) startHandler(m *tbot.Message) {
