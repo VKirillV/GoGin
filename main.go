@@ -50,7 +50,6 @@ func (a *application) startHandler(m *tbot.Message) {
 			"Hello": "World",
 		})
 	})
-	
 	r.Run(":8080")
 
 }
