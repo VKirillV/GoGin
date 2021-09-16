@@ -7,10 +7,17 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"github.com/yanzay/tbot/v2"
 )
+
+type Test struct {
+	id   int
+	name string
+	time string
+}
 
 type application struct {
 	client *tbot.Client
@@ -31,27 +38,61 @@ func init() {
 }
 
 func main() {
+
 	token = os.Getenv("TOKEN")
 	fmt.Println(token)
 	bot = tbot.New(token)
 	app.client = bot.Client()
 	bot.HandleMessage("/start", app.startHandler)
 	log.Fatal(bot.Start())
-	bot.HandleMessage("/check", app.startHandler)
-	log.Fatal(bot.Start())
+
 }
 
 func (a *application) startHandler(m *tbot.Message) {
-	msg := "Server is working!!!"
-	a.client.SendMessage(m.Chat.ID, msg)
-	variable := "world"
 	r := gin.Default()
-	r.GET(variable)
-	r.GET("/hello/:variable", func(c *gin.Context) {
+	db, err := sqlx.Open("mysql", "root:root@tcp(127.0.0.1:3307)/test")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	res, err := db.Query("SELECT * FROM test")
+
+	defer db.Close()
+
+	if err != nil {
+		panic(err.Error())
+	}
+	var data Test
+	for res.Next() {
+		err := res.Scan(&data.id, &data.name, &data.time)
+		if err != nil {
+			panic(err.Error())
+		}
+	}
+	r.GET("/table/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"Hello": "World",
+			"Time": &data.time,
+			"Name": &data.name,
+			"id":   &data.id,
 		})
+
+	})
+
+	r.GET("/hello/:article", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"Hello": c.Param("article"),
+		})
+
+		var msg string = c.Param("article")
+		a.client.SendMessage(m.Chat.ID, msg)
+
+		insert, err := db.Query("INSERT INTO test(name) VALUES(?)", msg)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		defer insert.Close()
+		fmt.Println("Succesfully")
 	})
 	r.Run(":8080")
-
 }
